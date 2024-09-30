@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -o errexit
+set -o nounset
+
+# Check if at least two arguments are provided
+if [ "$#" -lt 2 ]; then
+    echo "Usage: $0 <concurrency_level> <queue_name_1> [<queue_name_2> ... <queue_name_N>]"
+    exit 1
+fi
+
+# Assign the first argument to the concurrency level variable
+CONCURRENCY_LEVEL=$1
+
+# Shift the arguments to exclude the first one, so the rest are the queue names
+shift
+
+# Join the remaining arguments (queue names) with a comma
+QUEUE_NAMES=$(printf ",%s" "$@")
+QUEUE_NAMES=${QUEUE_NAMES:1}
+
+# Construct a worker name based on the queue names
+WORKER_NAME=$(printf "_%s" "$@")
+WORKER_NAME=${WORKER_NAME:1}
+
+# Start the Celery worker with the specified queue names, concurrency level, and worker name
+celery -A celery_app.celery_app worker -Q "$QUEUE_NAMES" --loglevel=INFO --concurrency="$CONCURRENCY_LEVEL" -n "market_reader_$WORKER_NAME@%h"

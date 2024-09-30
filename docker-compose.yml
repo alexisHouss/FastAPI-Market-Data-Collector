@@ -1,0 +1,80 @@
+name: finance-streamer
+services:
+  algo:
+    restart: always
+    build:
+      context: ./
+      dockerfile: ./compose/local/Dockerfile
+    image: algo
+    command: /start
+    env_file:
+      - .env/.dev-sample
+    volumes:
+      - ./:/app
+    ports:
+      - 8000:8000
+    depends_on:
+      - redis
+      - db
+
+  algo_worker:
+    restart: always
+    image: algo
+    command: /start-celeryworker 10 default
+    volumes:
+      - ./:/app
+    env_file:
+      - .env/.dev-sample
+    depends_on:
+      - redis
+      - db
+      # - ib-gateway
+
+  algo_beat:
+    restart: always
+    image: algo
+    command: /start-celerybeat
+    volumes:
+      - ./:/app
+    env_file:
+      - .env/.dev-sample
+    depends_on:
+      - redis
+      - db
+
+  algo_flower:
+    restart: always
+    image: algo
+    command: /start-flower
+    volumes:
+      - ./:/app
+    ports:
+      - 5557:5555
+    env_file:
+      - .env/.dev-sample
+    depends_on:
+      - redis
+      - db
+
+  db:
+    restart: always
+    build:
+      context: ./db
+    volumes:
+      - postgres_data_fastapi:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  redis:
+    restart: always
+    image: redis:7-alpine
+
+  # ib-gateway:
+  #   restart: always
+  #   image: ghcr.io/gnzsnz/ib-gateway:stable
+  #   env_file:
+  #     - .env/.ibgateway
+
+volumes:
+  postgres_data_fastapi:
